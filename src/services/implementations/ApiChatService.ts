@@ -48,12 +48,11 @@ export class ApiChatService implements ChatService {
     const url = this.baseUrl.replace(/\/+$/, '') + '/' + endpoint.replace(/^\/+/, '');
 
     const headers = new Headers(options.headers ?? {});
-    // 仅在有 body 时默认 JSON
+
     if (!headers.has('Content-Type') && options.body) {
       headers.set('Content-Type', 'application/json');
    }
 
-    // 带上 Bearer token（如有）
     const token = this.tokenManager.getToken?.();
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
@@ -143,9 +142,10 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    return await this.makeRequest<Message[]>(`/conversations/${conversationId}/messages`, {
-      method: 'GET',
-    });
+    return await this.makeRequest<Message[]>(
+      `/conversations/${conversationId}/messages`, 
+      { method: 'GET' }
+    );
   }
 
   async sendMessage(request: SendMessageRequest): Promise<Message> {
@@ -156,11 +156,16 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    // TODO: Implement sendMessage method
-    return await this.makeRequest<Message>(`/conversations/${request.conversationId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+   const { conversationId, content } = request;
+   if (!conversationId) throw new Error('conversationId is required');
+
+   const text = (content ?? '').trim();
+   if (!text) throw new Error('Message content cannot be empty');
+
+   return await this.makeRequest<Message>('/messages', {
+     method: 'POST',
+     body: JSON.stringify({ conversationId, content: text }),
+   });
 
   }
 
@@ -180,7 +185,7 @@ export class ApiChatService implements ChatService {
     // See API_SPECIFICATION.md for endpoint details
 
     
-    return await this.makeRequest<ExpertQueue>('/experts/queue', { method: 'GET' });
+    return await this.makeRequest<ExpertQueue>('/expert/queue', { method: 'GET' });
 
   }
 
@@ -192,7 +197,7 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    await this.makeRequest<void>(`/experts/conversations/${conversationId}/claim`, {
+    await this.makeRequest<void>(`/expert/conversations/${conversationId}/claim`, {
       method: 'POST',
     });
   }
@@ -205,7 +210,7 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    await this.makeRequest<void>(`/experts/conversations/${conversationId}/unclaim`, {
+    await this.makeRequest<void>(`/expert/conversations/${conversationId}/unclaim`, {
       method: 'POST',
     });
   }
@@ -218,7 +223,7 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    return await this.makeRequest<ExpertProfile>('/experts/me', { method: 'GET' });
+    return await this.makeRequest<ExpertProfile>('/expert/profile', { method: 'GET' });
   }
 
   async updateExpertProfile(
@@ -231,10 +236,10 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    return await this.makeRequest<ExpertProfile>('/experts/me', {
-      method: 'PATCH',
-      body: JSON.stringify(request),
-    });
+    return await this.makeRequest<ExpertProfile>('/expert/profile', {
+     method: 'PUT',
+     body: JSON.stringify(request),
+   });
   }
 
   async getExpertAssignmentHistory(): Promise<ExpertAssignment[]> {
@@ -245,6 +250,12 @@ export class ApiChatService implements ChatService {
     //
     // See API_SPECIFICATION.md for endpoint details
 
-    return await this.makeRequest<ExpertAssignment[]>('/experts/assignments', { method: 'GET' });
+    return await this.makeRequest<ExpertAssignment[]>('/expert/assignments/history', { method: 'GET' });
+
   }
 }
+
+
+
+
+
